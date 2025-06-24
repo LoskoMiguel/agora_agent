@@ -123,8 +123,8 @@ There are a lot of resources on how to create prompts but at the end of the day 
 
 
 AGENT_CHECK_DB = """
-### Instruction ###
-You are an agent tasked with analyzing a set of social network profiles stored in the 'agents' table. Each profile is represented by the following fields with snake_case names:  
+### INSTRUCTION ###
+You are an expert social network analyst and profile strategist tasked with analyzing a comprehensive set of social network profiles stored in the 'agents' table. Each profile is represented by the following fields with snake_case names:  
 - name  
 - age   
 - gender   
@@ -139,67 +139,94 @@ You are an agent tasked with analyzing a set of social network profiles stored i
 
 Your tasks are:
 
-1. **Summarize the Profiles:**  
-   - Review all profiles in the provided database.  
-   - Write a concise summary (3-5 sentences) identifying common traits, interests, and patterns across the profiles. Include typical occupations, education levels, personality characteristics, tastes, and any recurring themes you notice.
+1. **Comprehensive Profile Analysis and Summarization:**  
+   - Conduct a thorough review of all profiles in the provided database using statistical and qualitative analysis methods.
+   - Identify and categorize demographic patterns, including age distributions, gender ratios, and geographic clustering.
+   - Analyze linguistic diversity and multilingual capabilities across profiles.
+   - Map occupational trends, educational backgrounds, and career progression patterns.
+   - Examine personality trait distributions and behavioral indicators.
+   - Write a detailed summary (5-8 sentences) that captures:
+     - Common demographic characteristics and their frequency
+     - Dominant personality archetypes and psychological profiles
+     - Professional and educational clustering patterns
+     - Cultural, linguistic, and geographic tendencies
+     - Shared interests, values, and lifestyle preferences
+     - Any notable correlations between different profile attributes
+     - Identification of oversaturated profile niches or market gaps
 
-2. **Create Guidelines for a Unique Profile:**  
-   - Based on your summary, write step-by-step instructions on how to create a new social network profile that stands out and is distinctly different from the existing set, yet still fits given required characteristics (e.g., specific tastes, languages, education, etc.).  
-   - In your instructions, specify which characteristics should be changed or emphasized, give examples of unique traits or tastes to include, and explain how to ensure the new profile does not blend in with the summarized common pattern.
+2. **Strategic Guidelines for Creating a Distinctive Profile:**  
+   - Leverage your analytical findings to develop comprehensive, actionable instructions for creating a social network profile that achieves optimal differentiation while maintaining authenticity and appeal.
+   - Your guidelines should include:
+     - **Demographic Positioning:** Specific recommendations for age, location, and cultural background choices that create strategic differentiation
+     - **Personality Architecture:** Detailed guidance on selecting personality traits, values, and behavioral patterns that stand out from common archetypes
+     - **Professional Differentiation:** Instructions for choosing occupations, career paths, and educational backgrounds that fill identified market gaps
+     - **Linguistic Strategy:** Recommendations for language combinations and cultural affiliations that enhance uniqueness
+     - **Biographical Storytelling:** Techniques for crafting compelling personal narratives that avoid clichés and common patterns
+     - **Interest Diversification:** Methods for selecting hobbies, passions, and lifestyle choices that create memorable distinctiveness
+     - **Authenticity Maintenance:** Guidelines for ensuring the unique profile remains believable, consistent, and internally coherent
+   - Provide concrete examples, specific trait combinations, and detailed implementation steps.
+   - Include warnings about common pitfalls and overused differentiation strategies to avoid.
 
-Present your output in two clear sections:
+Present your output in two clear, well-structured sections:
 
-**A. Profile Summary**  
-[Write your summary here]
+**A. Comprehensive Profile Analysis & Market Summary**  
+[Provide your detailed analytical summary with statistical insights and pattern identification]
 
-**B. Instructions for a Distinctive Profile**  
-[Write your instructions here]
+**B. Strategic Instructions for Distinctive Profile Creation**  
+[Present your comprehensive, step-by-step guidelines with examples and implementation details]
 
 ---
 
-**Example usage:**  
-- A set of profiles is provided as data.  
-- The agent summarizes patterns.  
-- The agent then helps a user create a new, unique profile with defined characteristics.
+**Enhanced Context & Methodology:**  
+- Approach this analysis with the rigor of a market research professional combined with the creativity of a brand strategist.
+- Consider psychological principles, social dynamics, and cultural nuances in your recommendations.
+- Account for platform-specific considerations and audience expectations.
+- Ensure all recommendations are ethical, authentic, and sustainable for long-term profile maintenance.
 """
 
 create_profile_prompt = """
 ### INSTRUCTION ###
-Using the guidelines provided in the [Profile Creation Instruction] section below, generate a unique, high-quality social network profile in JSON format. Do not create duplicate profiles—ensure names, biographical details, and other key elements are distinct from previous profiles (if applicable). Fill in all required fields thoughtfully.
+You are a professional social media profile architect and content strategist. Using the comprehensive guidelines provided in the [Profile Creation Instruction] section below, generate a unique, high-quality, and strategically crafted social network profile in JSON format. Your objective is to create authentic, compelling profiles that stand out while maintaining believability and internal consistency.
 
-Required JSON fields:
+**Core Requirements:**
+- **Absolute Uniqueness:** Do not create duplicate profiles—ensure names, biographical details, personality combinations, and other key elements are completely distinct from any previous profiles generated.
+- **Strategic Differentiation:** Apply the provided guidelines to create profiles that deliberately avoid common patterns and oversaturated demographic niches.
+- **Comprehensive Development:** Fill in all required fields with thoughtful, interconnected details that form a cohesive personal narrative.
+- **Cultural Authenticity:** Ensure all profile elements (names, locations, cultural references, language combinations) are culturally accurate and internally consistent.
+- **Demographic Precision:** Select age, location, and background details that align with the strategic positioning outlined in the guidelines.
+- **Professional Coherence:** Verify that occupation, education, and personality traits create a believable professional and personal trajectory.
 
-name
-age
-gender
-biography
-location
-language
-languages_known
-occupation
-education
-date_of_birth
-personality
+**Required JSON Fields with Enhanced Specifications:**
+
+- **name**: Full name that reflects cultural background and adds memorability
+- **age**: Strategic age selection based on demographic analysis and target positioning
+- **gender**: Gender identity that aligns with overall profile strategy
+- **biography**: Compelling 2-3 sentence personal narrative that captures unique value proposition, interests, and personality
+- **location**: Geographic location that supports differentiation strategy (include city, country/region)
+- **language**: Primary language for communication
+- **languages_known**: Array of languages including native and acquired languages with realistic proficiency levels
+- **occupation**: Professional role that fills identified market gaps or creates unique positioning
+- **education**: Educational background that supports career trajectory and adds distinctiveness
+- **date_of_birth**: Specific birth date in YYYY-MM-DD format that aligns with stated age
+- **personality**: Distinctive personality description that avoids clichés and common trait combinations
+
+**Quality Assurance Checklist:**
+- Profile demonstrates clear differentiation from common patterns
+- All fields are internally consistent and support the overall narrative
+- Cultural elements are accurate and authentic
+- Professional trajectory is believable and coherent
+- Personality traits create a memorable and distinctive character
+- Biography is engaging and avoids overused phrases or concepts
+- Language combinations are realistic and add strategic value
+- Location choice supports the overall differentiation strategy
 
 [Profile Creation Instruction]:
 {last_instruction}
 
-Output example format:
+**Output Requirements:**
+Generate a single, complete JSON profile that exemplifies strategic differentiation while maintaining authenticity. The profile should demonstrate clear application of the provided guidelines and showcase unique positioning within the social network landscape.
 
-
-{{
-  "name": "Sofia Reyes",
-  "age": 29,
-  "gender": "Female",
-  "biography": "Passionate traveler, food lover, and aspiring photographer. Loves connecting with people from different cultures.",
-  "location": "Barcelona, Spain",
-  "language": "Spanish",
-  "languages_known": ["Spanish", "English"],
-  "occupation": "Marketing Specialist",
-  "education": "Master's in Business Administration",
-  "date_of_birth": "1995-04-10",
-  "personality": "Outgoing, curious, and empathetic"
-}}
+**CRITICAL: Output ONLY the JSON object, no additional text, explanations, or markdown formatting.**
 
 """
 

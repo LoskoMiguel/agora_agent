@@ -1,22 +1,34 @@
 from langchain_openai import ChatOpenAI
+from dotenv import load_dotenv
+import os
+from typing import TypedDict
+from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import create_react_agent
-from langgraph_supervisor import create_supervisor
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.tools import tool
+import json
+
 from supabase_utils.connection import get_db_connection
 from supabase_utils.db_pool import db as langchain_db
 from prompts.prompt_agent import create_profile_prompt, AGENT_CHECK_DB
-from dotenv import load_dotenv
-from langchain_core.prompts import ChatPromptTemplate
-import json
-import os
 
 load_dotenv()
 
+# Using a more recent and standard model
 llm = ChatOpenAI(
-    model="gpt-4o",
+    model="gpt-4.1",
     openai_api_key=os.environ.get("OPENAI_API_KEY"),
-    temperature=0.8
+    temperature=0
 )
 
+# 1. State Definition
+class AgentState(TypedDict):
+    instructions: str
+    profile: str
+    final_message: str
+
+# 2. Tools
+@tool
 def get_instructions_from_db():
     """Gets instructions from the database on how to create a distinctive profile."""
     print("---OBTENIENDO INSTRUCCIONES DE LA DB---")
@@ -24,18 +36,18 @@ def get_instructions_from_db():
     initial_input = AGENT_CHECK_DB
     response = agent_executor.invoke({"messages": [("user", initial_input)]})
     instructions = response['messages'][-1].content
-    print(f"Instrucciones generadas")
+    print(f"Instrucciones generadas (primeros 100 chars): {instructions[:100]}...")
     return instructions
 
+@tool
 def create_profile(instructions: str) -> str:
     """Crea un perfil de usuario en formato JSON según las instrucciones"""
     print("---CREANDO PERFIL---")
     user_prompt = (
-        "Create a strategically unique and authentic profile as a single JSON object based on the provided schema. "
+        "Create the profile as a single JSON object based on the provided schema. "
         "The JSON keys MUST be in snake_case. "
-        "Ensure the profile is distinctive, culturally coherent, and professionally believable. "
         "Only output the JSON object itself, with no additional text or markdown. "
-        "Following the comprehensive instructions: " + instructions
+        "Following the next instructions: " + instructions
     )
     prompt = ChatPromptTemplate.from_messages([
         ("system", create_profile_prompt),
@@ -46,6 +58,7 @@ def create_profile(instructions: str) -> str:
     print(f"Generated profile: {profile_json}")
     return profile_json
 
+@tool
 def add_profile_db(profile: str):
     """Inserta el perfil en la base de datos usando psycopg2."""
     print("---AÑADIENDO PERFIL A LA DB CON PSYCOPG2---")
@@ -92,42 +105,54 @@ def add_profile_db(profile: str):
             cursor.close()
             connection.close()
 
-add_profile_agent = create_react_agent(
-    name="add_profile_agent",
-    model=llm,
-    prompt=(
-        "You are a specialist in creating high-quality social media profiles. "
-        "Your process is meticulous and follows these exact steps: "
-        "1) FIRST: Use 'get_instructions_from_db' to obtain a detailed analysis of existing profiles and strategic guidelines. "
-        "2) SECOND: With those detailed instructions, use 'create_profile' to generate a unique and authentic profile that stands out from common patterns. "
-        "3) THIRD: Use 'add_profile_db' to insert the validated profile into the database. "
-        "Focus on creating profiles that are distinctive, culturally coherent, and professionally credible. "
-        "Never generate generic profiles or ones filled with common clichés."
-    ),
-    tools=[get_instructions_from_db, create_profile, add_profile_db],
-)
+# 3. Graph Nodes (calling tools directly)
+def get_instructions_node(state: AgentState):
+    print("---NODO: OBTENER INSTRUCCIONES---")
+    instructions = get_instructions_from_db.invoke({})
+    return {"instructions": instructions}
 
-supervisor = create_supervisor(
-    agents=[add_profile_agent],
-    model=llm,
-    prompt=(
-        "You are the supervisor of an advanced social media profile creation system. "
-        "Your goal is to ensure that unique, authentic, and strategically differentiated profiles are generated. "
-        "Coordinate the agent to follow the full process: DB analysis → strategic creation → validated insertion. "
-        "Demand exceptional quality in every profile generated."
-    )
-).compile()
+def create_profile_node(state: AgentState):
+    print("---NODO: CREAR PERFIL---")
+    profile_json = create_profile.invoke({"instructions": state['instructions']})
+    return {"profile": profile_json}
 
-print("Create a high-quality, strategically unique profile that stands out from existing patterns")
+def add_profile_db_node(state: AgentState):
+    print("---NODO: AÑADIR PERFIL A DB---")
+    final_message = add_profile_db.invoke({"profile": state['profile']})
+    return {"final_message": final_message}
 
-create = "Create A Profile"
+# 4. Graph Definition
+workflow = StateGraph(AgentState)
 
-result = supervisor.invoke({
-    "messages": [{"role": "user", "content": create}]
-})
+workflow.add_node("get_instructions", get_instructions_node)
+workflow.add_node("create_profile", create_profile_node)
+workflow.add_node("add_profile_to_db", add_profile_db_node)
 
-if "messages" in result:
-    for msg in result["messages"]:
-        role = getattr(msg, "role", type(msg).__name__)
-        content = getattr(msg, "content", str(msg))
-        print(f"🧠 [{role}] {content}")
+workflow.set_entry_point("get_instructions")
+workflow.add_edge("get_instructions", "create_profile")
+workflow.add_edge("create_profile", "add_profile_to_db")
+workflow.add_edge("add_profile_to_db", END)
+
+app = workflow.compile()
+
+# 5. Execution
+initial_state = {
+    "instructions": "",
+    "profile": "",
+    "final_message": ""
+}
+
+print("Iniciando el flujo de trabajo...")
+for step in app.stream(initial_state, {"recursion_limit": 10}):
+    if not step:
+        continue
+    node_name = list(step.keys())[0]
+    state = list(step.values())[0]
+    print(f"\n=== Salida del Nodo: {node_name} ===")
+    if node_name == "get_instructions":
+        print(f"   - instructions: {state.get('instructions', '')[:200]}...")
+    elif node_name == "create_profile":
+        print(f"   - profile: {state.get('profile', '')}")
+    elif node_name == "add_profile_to_db":
+        print(f"   - final_message: {state.get('final_message', '')}")
+print("\nFlujo de trabajo finalizado.")
